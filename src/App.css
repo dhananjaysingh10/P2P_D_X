@@ -1,0 +1,14 @@
+/* Reset root container to full width */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Reset body and html */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+}
