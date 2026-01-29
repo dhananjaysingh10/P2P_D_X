@@ -37,6 +37,22 @@ export const registerInstitution = async (institutionData) => {
     return { success: true };
 };
 
+// Get all institutions
+export const getAllInstitutions = async () => {
+    const response = await fetch(`${API_BASE_URL}/institutions?shardKey=test`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch institutions');
+    }
+
+    return await response.json();
+};
+
 // Get user by email
 export const getUserByEmail = async (email) => {
     const response = await fetch(`${API_BASE_URL}/api/v1/users/email/${encodeURIComponent(email)}`, {

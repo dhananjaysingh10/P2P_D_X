@@ -1,5 +1,6 @@
 package com.example.dao;
 
+import com.example.constants.ShardKey;
 import com.example.entity.Transaction;
 import io.appform.dropwizard.sharding.dao.RelationalDao;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +18,13 @@ public class TransactionStore {
 
     private static final int MAX_FETCH_COUNT = 100;
     private final RelationalDao<Transaction> transactionRelationalDao;
+    private final UserStore userStore;
+    private final CampaignStore campaignStore;
 
     public List<Transaction> getAll(String shardKey) {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Transaction.class);
-            return transactionRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return transactionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch transactions", e);
         }
@@ -31,7 +34,7 @@ public class TransactionStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Transaction.class)
                     .add(Restrictions.eq("transactionId", transactionId));
-            List<Transaction> transactions = transactionRelationalDao.select(shardKey, criteria, 0, 1);
+            List<Transaction> transactions = transactionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, 1);
             return transactions.isEmpty() ? Optional.empty() : Optional.of(transactions.get(0));
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch transaction: " + transactionId, e);
@@ -40,7 +43,22 @@ public class TransactionStore {
 
     public void create(String shardKey, Transaction transaction) {
         try {
-            transactionRelationalDao.save(shardKey, transaction);
+            // Validate donor exists (always use shard "1" for consistency)
+            boolean donorExists = userStore.getUserById(ShardKey.SHARD_KEY, transaction.getDonorId()).isPresent();
+            if (!donorExists) {
+                throw new IllegalArgumentException("Donor with ID " + transaction.getDonorId() + " does not exist");
+            }
+
+            // Validate campaign exists
+            boolean campaignExists = campaignStore.exists(ShardKey.SHARD_KEY, transaction.getCampaignId());
+            if (!campaignExists) {
+                throw new IllegalArgumentException("Campaign with ID " + transaction.getCampaignId() + " does not exist");
+            }
+
+            transactionRelationalDao.save(ShardKey.SHARD_KEY, transaction);
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation errors
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create transaction", e);
         }
@@ -48,7 +66,7 @@ public class TransactionStore {
 
     public void update(String shardKey, String transactionId, Transaction updatedTransaction) {
         try {
-            transactionRelationalDao.update(shardKey,
+            transactionRelationalDao.update(ShardKey.SHARD_KEY,
                     DetachedCriteria.forClass(Transaction.class)
                             .add(Restrictions.eq("transactionId", transactionId)),
                     transaction -> {
@@ -77,7 +95,7 @@ public class TransactionStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Transaction.class)
                     .add(Restrictions.eq("donorId", donorId));
-            return transactionRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return transactionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch transactions for donor: " + donorId, e);
         }
@@ -87,7 +105,7 @@ public class TransactionStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Transaction.class)
                     .add(Restrictions.eq("campaignId", campaignId));
-            return transactionRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return transactionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch transactions for campaign: " + campaignId, e);
         }
@@ -97,7 +115,7 @@ public class TransactionStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Transaction.class)
                     .add(Restrictions.eq("status", status));
-            return transactionRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return transactionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch transactions with status: " + status, e);
         }

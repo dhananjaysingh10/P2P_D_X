@@ -1,24 +1,36 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AUTH_CONFIG } from '../config';
+import { AUTH_CONFIG, USER_TYPES } from '../config';
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [userEmail, setUserEmail] = useState('');
+    const [userType, setUserType] = useState('');
+    const [userId, setUserId] = useState('');
 
     useEffect(() => {
         const email = localStorage.getItem(AUTH_CONFIG.STORAGE_KEY);
+        const type = localStorage.getItem(AUTH_CONFIG.USER_TYPE_KEY);
+        const id = localStorage.getItem(AUTH_CONFIG.USER_ID_KEY);
+
         if (!email) {
             navigate('/');
             return;
         }
         setUserEmail(email);
+        setUserType(type || '');
+        setUserId(id || '');
     }, [navigate]);
 
     const handleLogout = () => {
         localStorage.removeItem(AUTH_CONFIG.STORAGE_KEY);
+        localStorage.removeItem(AUTH_CONFIG.USER_TYPE_KEY);
+        localStorage.removeItem(AUTH_CONFIG.USER_ID_KEY);
         navigate('/');
     };
+
+    const isUser = userType === USER_TYPES.USER;
+    const isInstitution = userType === USER_TYPES.INSTITUTION;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -36,7 +48,12 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex items-center space-x-4">
-                            <span className="text-slate-300 text-sm">{userEmail}</span>
+                            <div className="text-right">
+                                <span className="text-slate-300 text-sm block">{userEmail}</span>
+                                <span className={`text-xs font-medium ${isInstitution ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                    {isInstitution ? '🏢 Institution' : '👤 User'} (ID: {userId})
+                                </span>
+                            </div>
                             <button
                                 onClick={handleLogout}
                                 className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all text-sm font-medium"
@@ -55,22 +72,27 @@ export default function Dashboard() {
                     <h1 className="text-3xl font-bold text-white mb-2">Welcome back! 👋</h1>
                     <p className="text-slate-400">
                         You are logged in as <span className="text-purple-400 font-medium">{userEmail}</span>
+                        {' '}({isInstitution ? 'Institution' : 'User'})
                     </p>
                 </div>
 
                 {/* Quick Actions */}
                 <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Link to="/campaigns/create" className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Create Campaign</h3>
-                        <p className="text-slate-400 text-sm">Start a new donation campaign</p>
-                    </Link>
+                    {/* Create Campaign - Only for Users */}
+                    {isUser && (
+                        <Link to="/campaigns/create" className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">Create Campaign</h3>
+                            <p className="text-slate-400 text-sm">Start a new donation campaign</p>
+                        </Link>
+                    )}
 
+                    {/* View Campaigns - For Both */}
                     <Link to="/campaigns" className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,21 +103,37 @@ export default function Dashboard() {
                         <p className="text-slate-400 text-sm">Browse active campaigns</p>
                     </Link>
 
-                    <Link to="/institution/manage" className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
+                    {/* Manage Campaigns - Only for Institutions */}
+                    {isInstitution && (
+                        <Link to="/institution/manage" className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">Manage Campaigns</h3>
+                            <p className="text-slate-400 text-sm">Approve/reject campaigns</p>
+                        </Link>
+                    )}
+
+                    {/* My Donations - Only for Users */}
+                    {isUser && (
+                        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:bg-white/15 transition-all cursor-pointer group">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-semibold text-white mb-2">My Donations</h3>
+                            <p className="text-slate-400 text-sm">Track your contributions</p>
                         </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Manage Campaigns</h3>
-                        <p className="text-slate-400 text-sm">Institution admin panel</p>
-                    </Link>
+                    )}
                 </div>
 
                 {/* Stats Preview */}
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <p className="text-slate-400 text-sm mb-1">Total Donated</p>
+                        <p className="text-slate-400 text-sm mb-1">{isInstitution ? 'Campaigns Managed' : 'Total Donated'}</p>
                         <p className="text-2xl font-bold text-white">₹0</p>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
@@ -103,11 +141,11 @@ export default function Dashboard() {
                         <p className="text-2xl font-bold text-white">0</p>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <p className="text-slate-400 text-sm mb-1">Beneficiaries Helped</p>
+                        <p className="text-slate-400 text-sm mb-1">{isInstitution ? 'Pending Approvals' : 'Beneficiaries Helped'}</p>
                         <p className="text-2xl font-bold text-white">0</p>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                        <p className="text-slate-400 text-sm mb-1">Tax Certificates</p>
+                        <p className="text-slate-400 text-sm mb-1">{isInstitution ? 'Total Raised' : 'Tax Certificates'}</p>
                         <p className="text-2xl font-bold text-white">0</p>
                     </div>
                 </div>

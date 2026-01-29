@@ -39,8 +39,8 @@ public class Campaign {
     @Column(name = "fund_raised", precision = 15, scale = 2)
     private BigDecimal fundRaised;
 
-    @Column(name = "medical_report_url", length = 1000)
-    private String medicalReportUrl;
+    @Column(name = "report_file_id", length = 255)
+    private String reportFileId;
 
     @Column(name = "is_live", nullable = false)
     private Boolean isLive;

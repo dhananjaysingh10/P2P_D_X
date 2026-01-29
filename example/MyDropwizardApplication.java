@@ -15,6 +15,10 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.inject.Injector;
+import com.phonepe.dataplatform.EventIngestorClient;
+import com.phonepe.olympus.im.bundle.OlympusIMBundle;
+import com.phonepe.olympus.im.bundle.config.OlympusIMBundleConfig;
 import in.vectorpro.dropwizard.swagger.SwaggerBundle;
 import in.vectorpro.dropwizard.swagger.SwaggerBundleConfiguration;
 import io.appform.dropwizard.sharding.DBShardingBundle;
@@ -24,14 +28,22 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import java.util.EnumSet;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
+
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
+import java.util.EnumSet;
+import java.util.function.Supplier;
 
 public class MyDropwizardApplication extends Application<MyDropwizardConfiguration> {
 
     private DBShardingBundle<MyDropwizardConfiguration> shardingBundle;
+    private OlympusIMBundle<MyDropwizardConfiguration> olympusIMBundle;
 
     public static void main(final String[] args) throws Exception {
         new MyDropwizardApplication().run(args);
@@ -45,6 +57,8 @@ public class MyDropwizardApplication extends Application<MyDropwizardConfigurati
     @Override
     public void initialize(final Bootstrap<MyDropwizardConfiguration> bootstrap) {
         // TODO: application initialization
+        this.olympusIMBundle = getOlympusIMBundle(
+                InjectionFactory::getInjector);
         this.shardingBundle = getDbShardingBundle();
         bootstrap.addBundle(shardingBundle);
         bootstrap.addBundle(swaggerBundle());
@@ -61,17 +75,27 @@ public class MyDropwizardApplication extends Application<MyDropwizardConfigurati
         environment.getObjectMapper().enable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES);
         environment.getObjectMapper().registerModule(new ParameterNamesModule(JsonCreator.Mode.PROPERTIES));
 
+        // Initialize Guice modules
+        InjectionFactory.init(new DaoModule(shardingBundle), new ServiceModule(olympusIMBundle));
+
         // Configure CORS to allow all incoming traffic
         configureCors(environment);
-
-        // Initialize Guice modules
-        InjectionFactory.init(new DaoModule(shardingBundle), new ServiceModule());
 
         // Register Resources
         environment.jersey().register(InjectionFactory.getInstance(UserResource.class));
         environment.jersey().register(InjectionFactory.getInstance(InstitutionResource.class));
         environment.jersey().register(InjectionFactory.getInstance(TransactionResource.class));
         environment.jersey().register(InjectionFactory.getInstance(CampaignResource.class));
+        environment.jersey().register(MultiPartFeature.class);
+    }
+
+    private DBShardingBundle<MyDropwizardConfiguration> getDbShardingBundle() {
+        return new DBShardingBundle<MyDropwizardConfiguration>("com.example") {
+            @Override
+            protected ShardedHibernateFactory getConfig(MyDropwizardConfiguration config) {
+                return config.getShards();
+            }
+        };
     }
 
     /**
@@ -90,14 +114,27 @@ public class MyDropwizardApplication extends Application<MyDropwizardConfigurati
         cors.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
     }
 
-    private DBShardingBundle<MyDropwizardConfiguration> getDbShardingBundle() {
-        return new DBShardingBundle<MyDropwizardConfiguration>("com.example") {
+    private OlympusIMBundle<MyDropwizardConfiguration> getOlympusIMBundle(Supplier<Injector> injectorSupplier) {
+        return new OlympusIMBundle<>() {
+
             @Override
-            protected ShardedHibernateFactory getConfig(MyDropwizardConfiguration config) {
-                return config.getShards();
+            protected OlympusIMBundleConfig getOlympusIMBundleConfig(MyDropwizardConfiguration configuration) {
+                return configuration.getOlympusIMClientConfig();
             }
+
+            @Override
+            protected Supplier<Injector> getGuiceInjector() {
+                return injectorSupplier;
+            }
+
+            @Override
+            protected Supplier<EventIngestorClient> getEventIngestorClient() {
+                return () -> injectorSupplier.get().getInstance(EventIngestorClient.class);
+            }
+
         };
     }
+
 
     SwaggerBundle<MyDropwizardConfiguration> swaggerBundle() {
         return new SwaggerBundle<MyDropwizardConfiguration>() {

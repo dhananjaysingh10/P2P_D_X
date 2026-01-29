@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createCampaign } from '../services/api';
+import { createCampaign, getAllInstitutions } from '../services/api';
 import { AUTH_CONFIG } from '../config';
 
 export default function CreateCampaign() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        beneficiaryId: '',
         institutionId: '',
         title: '',
         description: '',
@@ -18,6 +17,7 @@ export default function CreateCampaign() {
         donorCount: 0,
         priorityScore: 0
     });
+    const [institutions, setInstitutions] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,20 @@ export default function CreateCampaign() {
         const email = localStorage.getItem(AUTH_CONFIG.STORAGE_KEY);
         if (!email) {
             navigate('/');
+            return;
         }
+
+        // Fetch institutions
+        const fetchInstitutions = async () => {
+            try {
+                const data = await getAllInstitutions();
+                setInstitutions(data);
+            } catch (err) {
+                console.error('Failed to fetch institutions:', err);
+                setError('Failed to load institutions');
+            }
+        };
+        fetchInstitutions();
     }, [navigate]);
 
     const handleChange = (e) => {
@@ -42,10 +55,11 @@ export default function CreateCampaign() {
         setLoading(true);
 
         try {
+            const userId = localStorage.getItem(AUTH_CONFIG.USER_ID_KEY);
             const campaignData = {
                 ...formData,
-                beneficiaryId: parseInt(formData.beneficiaryId) || 1,
-                institutionId: parseInt(formData.institutionId) || 1
+                beneficiaryId: parseInt(userId) || 1, // Use logged-in user ID as beneficiary
+                institutionId: parseInt(formData.institutionId)
             };
 
             await createCampaign(campaignData);
@@ -112,34 +126,28 @@ export default function CreateCampaign() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Beneficiary ID <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    name="beneficiaryId"
-                                    value={formData.beneficiaryId}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                                    placeholder="Beneficiary ID"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Institution ID <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    name="institutionId"
-                                    value={formData.institutionId}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                                    placeholder="Institution ID"
-                                    required
-                                />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                Select Institution <span className="text-red-400">*</span>
+                            </label>
+                            <select
+                                name="institutionId"
+                                value={formData.institutionId}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                                required
+                            >
+                                <option value="" className="bg-slate-900 text-slate-500">Select an institution to manage this campaign</option>
+                                {institutions.map((inst) => (
+                                    <option key={inst.id} value={inst.id} className="bg-slate-900">
+                                        {inst.name} ({inst.city}, {inst.state})
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
                             </div>
                         </div>
 

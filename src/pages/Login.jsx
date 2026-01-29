@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AUTH_CONFIG } from '../config';
+import { AUTH_CONFIG, USER_TYPES } from '../config';
+import { getUserByEmail, getAllInstitutions } from '../services/api';
 
 export default function Login() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
-        password: ''
+        password: '',
+        userType: '',
+        userId: ''
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -24,13 +27,36 @@ export default function Login() {
         setLoading(true);
 
         try {
-            // For now, accept any password (dummy authentication)
             if (!formData.email) {
                 throw new Error('Email is required');
             }
+            if (!formData.userType) {
+                throw new Error('Please select account type');
+            }
 
-            // Store email in localStorage
+            let userId = null;
+
+            // Fetch ID based on user type
+            if (formData.userType === USER_TYPES.USER) {
+                // Fetch user by email
+                const user = await getUserByEmail(formData.email);
+                userId = user.data.id;
+            } else {
+                // Fetch all institutions and find matching email
+                // Note: Ideally backend should have a getInstitutionByEmail endpoint
+                const institutions = await getAllInstitutions();
+                const institution = institutions.find(inst => inst.email === formData.email);
+
+                if (!institution) {
+                    throw new Error('Institution not found with this email');
+                }
+                userId = institution.id;
+            }
+
+            // Store in localStorage
             localStorage.setItem(AUTH_CONFIG.STORAGE_KEY, formData.email);
+            localStorage.setItem(AUTH_CONFIG.USER_TYPE_KEY, formData.userType);
+            localStorage.setItem(AUTH_CONFIG.USER_ID_KEY, userId);
 
             // Navigate to dashboard
             navigate('/dashboard');
@@ -57,16 +83,51 @@ export default function Login() {
 
                 {/* Login Card */}
                 <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
                             <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl text-sm">
                                 {error}
                             </div>
                         )}
 
+                        {/* Account Type Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-3">
+                                Account Type <span className="text-red-400">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, userType: USER_TYPES.USER })}
+                                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${formData.userType === USER_TYPES.USER
+                                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                                        : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                                        }`}
+                                >
+                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <span className="font-medium">User</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, userType: USER_TYPES.INSTITUTION })}
+                                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${formData.userType === USER_TYPES.INSTITUTION
+                                        ? 'border-purple-500 bg-purple-500/20 text-white'
+                                        : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
+                                        }`}
+                                >
+                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <span className="font-medium">Institution</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Email Address
+                                Email Address <span className="text-red-400">*</span>
                             </label>
                             <input
                                 type="email"
@@ -78,6 +139,8 @@ export default function Login() {
                                 required
                             />
                         </div>
+
+
 
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">

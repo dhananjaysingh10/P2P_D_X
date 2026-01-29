@@ -1,5 +1,6 @@
 package com.example.dao;
 
+import com.example.constants.ShardKey;
 import com.example.entity.Institution;
 import io.appform.dropwizard.sharding.dao.RelationalDao;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class InstitutionStore {
     public List<Institution> getAll(String shardKey) {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Institution.class);
-            return institutionRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return institutionRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch institutions", e);
         }
@@ -29,7 +30,7 @@ public class InstitutionStore {
 
     public Optional<Institution> getById(String shardKey, Long id) {
         try {
-            return institutionRelationalDao.get(shardKey, id);
+            return institutionRelationalDao.get(ShardKey.SHARD_KEY, id);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch institution: " + id, e);
         }
@@ -37,7 +38,7 @@ public class InstitutionStore {
 
     public void create(String shardKey, Institution institution) {
         try {
-            institutionRelationalDao.save(shardKey, institution);
+            institutionRelationalDao.save(ShardKey.SHARD_KEY, institution);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create institution", e);
         }
@@ -45,7 +46,7 @@ public class InstitutionStore {
 
     public void update(String shardKey, Long id, Institution updatedInstitution) {
         try {
-            institutionRelationalDao.update(shardKey,
+            institutionRelationalDao.update(ShardKey.SHARD_KEY,
                     DetachedCriteria.forClass(Institution.class)
                             .add(Restrictions.eq("id", id)),
                     institution -> {

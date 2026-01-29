@@ -64,21 +64,9 @@ public class Campaign {
     @NotBlank(message = "Campaign category is required")
     private String category; // e.g., Medical, Education, Emergency, Social Cause
 
-    // Related documents
+    // Report file stored in Docstore
     @JsonProperty
-    private List<String> relatedDocs; // Document URLs/paths for supporting documents
-
-    @JsonProperty
-    private String medicalReportUrl;
-
-    @JsonProperty
-    private String identityProofUrl;
-
-    @JsonProperty
-    private String incomeCertificateUrl;
-
-    @JsonProperty
-    private List<String> additionalDocuments;
+    private String reportFileId; // Docstore file ID for the general report
 
     // Campaign status
     @JsonProperty
@@ -319,8 +307,7 @@ public class Campaign {
                          title != null &&
                          description != null &&
                          fundNeeded != null &&
-                         category != null &&
-                         relatedDocs != null && !relatedDocs.isEmpty();
+                         category != null;
 
         if (!isValid) {
             log.warn("Campaign {} validation failed for approval", id);

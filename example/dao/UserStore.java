@@ -1,5 +1,6 @@
 package com.example.dao;
 
+import com.example.constants.ShardKey;
 import com.example.entity.User;
 import io.appform.dropwizard.sharding.dao.RelationalDao;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +30,12 @@ public class UserStore {
     private final RelationalDao<User> userRelationalDao;
 
     /**
-     * Create a new user
+     * Create a new user - Always uses shard "1"
      */
     public User createUser(User user) {
         try {
             log.info("Creating user with email: {}", user.getEmail());
-            Optional<User> savedUser = userRelationalDao.save(user.getEmail(), user);
+            Optional<User> savedUser = userRelationalDao.save(ShardKey.SHARD_KEY, user);
             return savedUser.orElseThrow(() -> new RuntimeException("Failed to save user"));
         } catch (Exception e) {
             log.error("Failed to create user: {}", user.getEmail(), e);
@@ -43,7 +44,7 @@ public class UserStore {
     }
 
     /**
-     * Get user by email
+     * Get user by email - Always uses shard "1"
      */
     public Optional<User> getUserByEmail(String email) {
         try {
@@ -51,7 +52,7 @@ public class UserStore {
             DetachedCriteria criteria = DetachedCriteria.forClass(User.class);
             criteria.add(Restrictions.eq(EMAIL_PARAM, email));
 
-            List<User> users = userRelationalDao.select(email, criteria, 0, 1);
+            List<User> users = userRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, 1);
             return users.isEmpty() ? Optional.empty() : Optional.of(users.get(0));
         } catch (Exception e) {
             log.error("Failed to fetch user by email: {}", email, e);
@@ -60,7 +61,7 @@ public class UserStore {
     }
 
     /**
-     * Get user by PAN
+     * Get user by PAN - Always uses shard "1"
      */
     public Optional<User> getUserByPan(String pan) {
         try {
@@ -68,7 +69,7 @@ public class UserStore {
             DetachedCriteria criteria = DetachedCriteria.forClass(User.class);
             criteria.add(Restrictions.eq(PAN_PARAM, pan));
 
-            List<User> users = userRelationalDao.select(pan, criteria, 0, 1);
+            List<User> users = userRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, 1);
             return users.isEmpty() ? Optional.empty() : Optional.of(users.get(0));
         } catch (Exception e) {
             log.error("Failed to fetch user by PAN: {}", pan, e);
@@ -77,12 +78,12 @@ public class UserStore {
     }
 
     /**
-     * Get user by ID
+     * Get user by ID - Always uses shard "1"
      */
     public Optional<User> getUserById(String lookupKey, Long id) {
         try {
             log.debug("Fetching user by ID: {}", id);
-            return userRelationalDao.get(lookupKey, id);
+            return userRelationalDao.get(ShardKey.SHARD_KEY, id);
         } catch (Exception e) {
             log.error("Failed to fetch user by ID: {}", id, e);
             throw new RuntimeException("Failed to fetch user by ID: " + id, e);
@@ -90,7 +91,7 @@ public class UserStore {
     }
 
     /**
-     * Get all beneficiaries
+     * Get all beneficiaries - Always uses shard "1"
      */
     public List<User> getAllBeneficiaries(String lookupKey) {
         try {
@@ -98,7 +99,7 @@ public class UserStore {
             DetachedCriteria criteria = DetachedCriteria.forClass(User.class);
             criteria.add(Restrictions.eq(IS_BENEFICIARY_PARAM, true));
 
-            return userRelationalDao.select(lookupKey, criteria, 0, MAX_FETCH_COUNT);
+            return userRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             log.error("Failed to fetch beneficiaries", e);
             throw new RuntimeException("Failed to fetch beneficiaries", e);
@@ -106,12 +107,12 @@ public class UserStore {
     }
 
     /**
-     * Update user
+     * Update user - Always uses shard "1"
      */
     public void updateUser(String email, UnaryOperator<User> mutator) {
         try {
             log.info("Updating user with email: {}", email);
-            userRelationalDao.update(email,
+            userRelationalDao.update(ShardKey.SHARD_KEY,
                 DetachedCriteria.forClass(User.class)
                     .add(Restrictions.eq(EMAIL_PARAM, email)),
                 mutator);

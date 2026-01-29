@@ -1,5 +1,6 @@
 package com.example.dao;
 
+import com.example.constants.ShardKey;
 import com.example.entity.Campaign;
 import io.appform.dropwizard.sharding.dao.RelationalDao;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class CampaignStore {
     public List<Campaign> getAll(String shardKey) {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class);
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch campaigns", e);
         }
@@ -29,7 +30,7 @@ public class CampaignStore {
 
     public Optional<Campaign> getById(String shardKey, Long id) {
         try {
-            return campaignRelationalDao.get(shardKey, id);
+            return campaignRelationalDao.get(ShardKey.SHARD_KEY, id);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch campaign: " + id, e);
         }
@@ -37,7 +38,7 @@ public class CampaignStore {
 
     public void create(String shardKey, Campaign campaign) {
         try {
-            campaignRelationalDao.save(shardKey, campaign);
+            campaignRelationalDao.save(ShardKey.SHARD_KEY, campaign);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create campaign", e);
         }
@@ -45,7 +46,7 @@ public class CampaignStore {
 
     public void update(String shardKey, Long id, Campaign updatedCampaign) {
         try {
-            campaignRelationalDao.update(shardKey,
+            campaignRelationalDao.update(ShardKey.SHARD_KEY,
                     DetachedCriteria.forClass(Campaign.class)
                             .add(Restrictions.eq("id", id)),
                     campaign -> {
@@ -54,7 +55,7 @@ public class CampaignStore {
                         campaign.setTitle(updatedCampaign.getTitle());
                         campaign.setDescription(updatedCampaign.getDescription());
                         campaign.setFundRaised(updatedCampaign.getFundRaised());
-                        campaign.setMedicalReportUrl(updatedCampaign.getMedicalReportUrl());
+                        campaign.setReportFileId(updatedCampaign.getReportFileId());
                         campaign.setIsLive(updatedCampaign.getIsLive());
                         campaign.setIsApproved(updatedCampaign.getIsApproved());
                         campaign.setIsFulfilled(updatedCampaign.getIsFulfilled());
@@ -68,6 +69,20 @@ public class CampaignStore {
         }
     }
 
+    public void updateReportFileId(String shardKey, Long id, String reportFileId) {
+        try {
+            campaignRelationalDao.update(ShardKey.SHARD_KEY,
+                    DetachedCriteria.forClass(Campaign.class)
+                            .add(Restrictions.eq("id", id)),
+                    campaign -> {
+                        campaign.setReportFileId(reportFileId);
+                        return campaign;
+                    });
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update report file ID for campaign: " + id, e);
+        }
+    }
+
     public boolean exists(String shardKey, Long id) {
         return getById(shardKey, id).isPresent();
     }
@@ -76,7 +91,7 @@ public class CampaignStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class)
                     .add(Restrictions.eq("beneficiaryId", beneficiaryId));
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch campaigns for beneficiary: " + beneficiaryId, e);
         }
@@ -86,7 +101,7 @@ public class CampaignStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class)
                     .add(Restrictions.eq("institutionId", institutionId));
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch campaigns for institution: " + institutionId, e);
         }
@@ -96,7 +111,7 @@ public class CampaignStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class)
                     .add(Restrictions.eq("isLive", true));
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch live campaigns", e);
         }
@@ -106,7 +121,7 @@ public class CampaignStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class)
                     .add(Restrictions.eq("isApproved", true));
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch approved campaigns", e);
         }
@@ -116,7 +131,7 @@ public class CampaignStore {
         try {
             DetachedCriteria criteria = DetachedCriteria.forClass(Campaign.class)
                     .add(Restrictions.eq("isFulfilled", true));
-            return campaignRelationalDao.select(shardKey, criteria, 0, MAX_FETCH_COUNT);
+            return campaignRelationalDao.select(ShardKey.SHARD_KEY, criteria, 0, MAX_FETCH_COUNT);
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch fulfilled campaigns", e);
         }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getAllCampaigns, updateCampaign } from '../services/api';
-import { AUTH_CONFIG } from '../config';
+import { getCampaignsByInstitution, updateCampaign } from '../services/api';
+import { AUTH_CONFIG, USER_TYPES } from '../config';
 
 export default function InstitutionManagement() {
     const navigate = useNavigate();
@@ -10,20 +10,32 @@ export default function InstitutionManagement() {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('pending');
     const [actionLoading, setActionLoading] = useState(null);
+    const [institutionId, setInstitutionId] = useState('');
 
     useEffect(() => {
         const email = localStorage.getItem(AUTH_CONFIG.STORAGE_KEY);
+        const userType = localStorage.getItem(AUTH_CONFIG.USER_TYPE_KEY);
+        const userId = localStorage.getItem(AUTH_CONFIG.USER_ID_KEY);
+
         if (!email) {
             navigate('/');
             return;
         }
-        fetchCampaigns();
+
+        // Verify this is an institution user
+        if (userType !== USER_TYPES.INSTITUTION) {
+            navigate('/dashboard');
+            return;
+        }
+
+        setInstitutionId(userId);
+        fetchCampaigns(userId);
     }, [navigate]);
 
-    const fetchCampaigns = async () => {
+    const fetchCampaigns = async (instId) => {
         try {
             setLoading(true);
-            const data = await getAllCampaigns();
+            const data = await getCampaignsByInstitution(instId);
             setCampaigns(data);
         } catch (err) {
             setError(err.message);
@@ -48,7 +60,7 @@ export default function InstitutionManagement() {
                 isApproved: true,
                 isLive: true
             });
-            await fetchCampaigns();
+            await fetchCampaigns(institutionId);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -64,7 +76,7 @@ export default function InstitutionManagement() {
                 isLive: false,
                 isFulfilled: true
             });
-            await fetchCampaigns();
+            await fetchCampaigns(institutionId);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -80,7 +92,7 @@ export default function InstitutionManagement() {
                 isApproved: false,
                 isLive: false
             });
-            await fetchCampaigns();
+            await fetchCampaigns(institutionId);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -159,8 +171,8 @@ export default function InstitutionManagement() {
                     <button
                         onClick={() => setActiveTab('pending')}
                         className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'pending'
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
                             }`}
                     >
                         Pending ({pendingCampaigns.length})
@@ -168,8 +180,8 @@ export default function InstitutionManagement() {
                     <button
                         onClick={() => setActiveTab('approved')}
                         className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'approved'
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
                             }`}
                     >
                         Approved ({approvedCampaigns.length})
@@ -177,8 +189,8 @@ export default function InstitutionManagement() {
                     <button
                         onClick={() => setActiveTab('closed')}
                         className={`px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'closed'
-                                ? 'bg-slate-500 text-white'
-                                : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                            ? 'bg-slate-500 text-white'
+                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
                             }`}
                     >
                         Closed ({closedCampaigns.length})

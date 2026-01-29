@@ -2,7 +2,6 @@ package com.example.service;
 
 import com.example.dao.CampaignStore;
 import com.example.entity.Campaign;
-import com.example.service.CampaignService;
 import lombok.RequiredArgsConstructor;
 
 import javax.inject.Inject;
@@ -28,6 +27,7 @@ public class CampaignServiceImpl implements CampaignService {
 
     @Override
     public void createCampaign(String shardKey, Campaign campaign) {
+
         campaignStore.create(shardKey, campaign);
     }
 
@@ -67,5 +67,13 @@ public class CampaignServiceImpl implements CampaignService {
     @Override
     public List<Campaign> getFulfilledCampaigns(String shardKey) {
         return campaignStore.getFulfilledCampaigns(shardKey);
+    }
+
+    @Override
+    public void updateReportFileId(String shardKey, Long id, String reportFileId) {
+        if (!campaignStore.exists(shardKey, id)) {
+            throw new RuntimeException("Campaign not found: " + id);
+        }
+        campaignStore.updateReportFileId(shardKey, id, reportFileId);
     }
 }

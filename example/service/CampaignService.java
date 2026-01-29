@@ -26,4 +26,6 @@ public interface CampaignService {
     List<Campaign> getApprovedCampaigns(String shardKey);
 
     List<Campaign> getFulfilledCampaigns(String shardKey);
+
+    void updateReportFileId(String shardKey, Long id, String reportFileId);
 }

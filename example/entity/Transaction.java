@@ -18,9 +18,11 @@ import java.util.Date;
 @AllArgsConstructor
 @Builder
 public class Transaction {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "transaction_id", length = 255)
-    private String transactionId;
+    private Long transactionId;
 
     @Column(name = "donor_id", nullable = false)
     private Long donorId;

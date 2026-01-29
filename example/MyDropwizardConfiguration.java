@@ -1,6 +1,8 @@
 package com.example;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.phonepe.olympus.im.bundle.config.OlympusIMBundleConfig;
+import com.phonepe.platform.http.v2.common.HttpConfiguration;
 import in.vectorpro.dropwizard.swagger.SwaggerBundle;
 import in.vectorpro.dropwizard.swagger.SwaggerBundleConfiguration;
 import io.appform.dropwizard.sharding.config.ShardedHibernateFactory;
@@ -28,4 +30,12 @@ public class MyDropwizardConfiguration extends Configuration {
     @Valid
     @NotNull
     private ShardedHibernateFactory shards;
+
+    @javax.validation.Valid
+    @NotNull
+    private OlympusIMBundleConfig olympusIMClientConfig;
+
+    @JsonProperty("docstore")
+    private HttpConfiguration docstoreHttpConfig;
+
 }
